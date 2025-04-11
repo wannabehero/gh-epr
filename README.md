@@ -10,11 +10,20 @@ Make sure the CLI is installed: https://cli.github.com/
 gh extension install wannabehero/gh-epr
 ```
 
+## Configuration
+
+To make the best use of the tool set either:
+- `OPENAI_API_KEY`
+- `ANTHROPIC_API_KEY`
+in your environment variables so it can use the LLM
+to generate relevant title automatically
+based on your current branch commits.
+
 ## Usage
 
 ```
-gh epr 'This is a PR title' <other args that gh pr create supports>
+gh epr <other args that gh pr create supports>
 ```
 
 This will follow you through interactive create process
-and your final PR title will have the random emoji added to it.
+and your final PR title will be automatically added and emojified.
