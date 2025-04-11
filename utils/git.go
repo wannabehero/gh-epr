@@ -15,9 +15,14 @@ func runCmd(name string, args ...string) string {
 	return strings.TrimSpace(string(output))
 }
 
-func DefaultTitle(baseBranch string) string {
+func GetCommitsHistory(baseBranch string) []string {
 	commits := runCmd("git", "log", "--pretty=format:%s", fmt.Sprintf("origin/%s..HEAD", baseBranch))
 	messages := strings.Split(commits, "\n")
+	return messages
+}
+
+func GetDefaultTitle(baseBranch string) string {
+	messages := GetCommitsHistory(baseBranch)
 	if len(messages) == 1 && messages[0] != "" {
 		return messages[0]
 	}
