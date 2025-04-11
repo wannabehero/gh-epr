@@ -9,18 +9,18 @@ import (
 )
 
 var emojis = []string{
-	"🚀", "🤖", "🎢", "🪨", "🎨"
-	"🧻", "🗞️", "📎", "🌚", "💸"
-	"📝", "☠️", "🐕", "🐩", "🐃"
-	"♾️", "🐜", "🦁", "🐺", "🦊"
+	"🚀", "🤖", "🎢", "🪨", "🎨",
+	"🧻", "🗞️", "📎", "🌚", "💸",
+	"📝", "☠️", "🐕", "🐩", "🐃",
+	"♾️", "🐜", "🦁", "🐺", "🦊",
 }
 
 func getRandomEmoji() string {
 	return emojis[rand.Intn(len(emojis))]
 }
 
-func runCmd(cmd string, args ...string) string {
-	cmd := exec.Command(cmd, args...)
+func runCmd(name string, args ...string) string {
+	cmd := exec.Command(name, args...)
 	output, err := cmd.Output()
 	if err != nil {
 		return fmt.Sprintf("Error running command: %v", err)
