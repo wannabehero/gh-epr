@@ -1,2 +1,5 @@
 [tools]
 go = "latest"
+
+[tasks]
+build = "go build -o gh-epr"
