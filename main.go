@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -53,16 +54,21 @@ func detectBaseBranch() string {
 }
 
 func main() {
-	var title string
-
 	baseBranch := detectBaseBranch()
-
-	if len(os.Args) >= 2 {
-		title = os.Args[1]
-	} else {
-		title = defaultTitle(baseBranch)
-	}
+	title := defaultTitle(baseBranch)
 
 	fullTitle := fmt.Sprintf("%s %s", getRandomEmoji(), title)
-	fmt.Println(fullTitle)
+
+	extraArgs := os.Args[1:]
+
+	args := append([]string{"pr", "create", "--title", fullTitle}, extraArgs...)
+
+	cmd := exec.Command("gh", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+
+	if err := cmd.Run(); err != nil {
+		log.Fatalf("Error running command: %v", err)
+	}
 }
