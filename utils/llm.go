@@ -35,7 +35,7 @@ type Response struct {
 
 func getAvailableGenerator() *gen.Generator {
 	if key := os.Getenv("OPENAI_API_KEY"); key != "" {
-		return openai.New(key).Generator().Model(openai.GenModel_gpt4o_latest)
+		return openai.New(key).Generator().Model(openai.GenModel_gpt4o)
 	}
 
 	if key := os.Getenv("ANTHROPIC_API_KEY"); key != "" {
