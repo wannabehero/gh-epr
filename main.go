@@ -2,33 +2,27 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
 	"os/exec"
+
+	"github.com/wannabehero/gh-epr/utils"
 )
 
-var emojis = []string{
-	"🚀", "🤖", "🎢", "🪨", "🎨",
-	"🧻", "🗞️", "📎", "🌚", "💸",
-	"📝", "☠️", "🐕", "🐩", "🐃",
-	"♾️", "🐜", "🦁", "🐺", "🦊",
-}
-
-func getRandomEmoji() string {
-	return emojis[rand.Intn(len(emojis))]
-}
-
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("Usage: gh epr <pr title>")
-		return
+	baseBranch := utils.DetectBaseBranch()
+	commits := utils.GetCommitsHistory(baseBranch)
+
+	var fullTitle string
+
+	if generatedTitle := utils.GenerateTitle(commits); generatedTitle != nil {
+		fullTitle = *generatedTitle
+	} else {
+		defaulTitle := utils.GetDefaultTitle(baseBranch)
+
+		fullTitle = fmt.Sprintf("%s %s", utils.GetRandomEmoji(), defaulTitle)
 	}
 
-	title := os.Args[1]
-
-	fullTitle := fmt.Sprintf("%s %s", getRandomEmoji(), title)
-
-	extraArgs := os.Args[2:]
+	extraArgs := os.Args[1:]
 
 	args := append([]string{"pr", "create", "--title", fullTitle}, extraArgs...)
 
