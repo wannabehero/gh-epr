@@ -29,8 +29,25 @@ Commit messages:
 %s
 `
 
+const BODY_PROMPT = `
+Using the following commit messages as a context
+generate a descriptive Pull Request body that summarizes the changes.
+Include:
+1. A brief summary section with 1-3 bullet points describing the key changes
+2. A test plan section that outlines how these changes should be tested
+
+Format it in Markdown with proper headings.
+
+Commit messages:
+%s
+`
+
 type Response struct {
 	Title string `json:"title"`
+}
+
+type BodyResponse struct {
+	Body string `json:"body"`
 }
 
 func getAvailableGenerator() *gen.Generator {
@@ -66,4 +83,27 @@ func GenerateTitle(commits []string) *string {
 	}
 
 	return &response.Title
+}
+
+func GenerateBody(commits []string) *string {
+	generator := getAvailableGenerator()
+
+	if generator == nil {
+		return nil
+	}
+
+	res, err := generator.
+		Output(schema.From(BodyResponse{})).
+		Prompt(prompt.AsUser(fmt.Sprintf(BODY_PROMPT, strings.Join(commits, "\n"))))
+
+	if err != nil {
+		return nil
+	}
+
+	var response BodyResponse
+	if err = res.Unmarshal(&response); err != nil {
+		return nil
+	}
+
+	return &response.Body
 }

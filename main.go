@@ -23,8 +23,13 @@ func main() {
 	}
 
 	extraArgs := os.Args[1:]
+	args := []string{"pr", "create", "--title", fullTitle}
 
-	args := append([]string{"pr", "create", "--title", fullTitle}, extraArgs...)
+	if generatedBody := utils.GenerateBody(commits); generatedBody != nil {
+		args = append(args, "--body", *generatedBody)
+	}
+
+	args = append(args, extraArgs...)
 
 	cmd := exec.Command("gh", args...)
 	cmd.Stdout = os.Stdout
