@@ -6,40 +6,93 @@ import (
 	"strings"
 )
 
-func runCmd(name string, args ...string) string {
+func runCmd(name string, args ...string) (string, error) {
 	cmd := exec.Command(name, args...)
 	output, err := cmd.Output()
 	if err != nil {
-		return fmt.Sprintf("Error running command: %v", err)
+		return "", fmt.Errorf("error running command '%s %s': %w", name, strings.Join(args, " "), err)
 	}
-	return strings.TrimSpace(string(output))
+	return strings.TrimSpace(string(output)), nil
 }
 
-func GetCommitsHistory(baseBranch string) []string {
-	commits := runCmd("git", "log", "--pretty=format:%s", fmt.Sprintf("origin/%s..HEAD", baseBranch))
-	messages := strings.Split(commits, "\n")
-	return messages
+func GetCommitsHistory(baseBranch string) ([]string, error) {
+	remotes, err := runCmd("git", "remote")
+	if err != nil {
+		return nil, err
+	}
+	
+	remotesList := strings.Split(remotes, "\n")
+	
+	remoteRefs, err := runCmd("git", "branch", "-r")
+	if err != nil {
+		return nil, err
+	}
+	
+	for _, remote := range remotesList {
+		if remote == "" {
+			continue
+		}
+		
+		remoteRef := fmt.Sprintf("%s/%s", remote, baseBranch)
+		
+		if !strings.Contains(remoteRefs, remoteRef) {
+			continue
+		}
+		
+		commits, err := runCmd("git", "log", "--pretty=format:%s", fmt.Sprintf("%s..HEAD", remoteRef))
+		if err == nil && commits != "" {
+			return strings.Split(commits, "\n"), nil
+		}
+	}
+	
+	return []string{}, nil
 }
 
-func GetDefaultTitle(baseBranch string) string {
-	messages := GetCommitsHistory(baseBranch)
+func GetDefaultTitle(baseBranch string) (string, error) {
+	messages, err := GetCommitsHistory(baseBranch)
+	if err != nil {
+		return "", err
+	}
+	
 	if len(messages) == 1 && messages[0] != "" {
-		return messages[0]
+		return messages[0], nil
 	}
 
-	branchName := runCmd("git", "rev-parse", "--abbrev-ref", "HEAD")
-	return branchName
+	branchName, err := runCmd("git", "rev-parse", "--abbrev-ref", "HEAD")
+	if err != nil {
+		return "", err
+	}
+	
+	return branchName, nil
 }
 
-func DetectBaseBranch() string {
-	branches := runCmd("git", "branch", "-r")
-	if strings.Contains(branches, "origin/main") {
-		return "main"
+func DetectBaseBranch() (string, error) {
+	branches, err := runCmd("git", "branch", "-r")
+	if err != nil {
+		return "", err
 	}
-	if strings.Contains(branches, "origin/master") {
-		return "master"
+	
+	baseBranchNames := []string{"main", "master", "dev", "develop", "trunk"}
+	
+	remotes, err := runCmd("git", "remote")
+	if err != nil {
+		return "", err
+	}
+	
+	remotesList := strings.Split(remotes, "\n")
+	
+	for _, baseName := range baseBranchNames {
+		for _, remote := range remotesList {
+			if remote == "" {
+				continue
+			}
+			
+			remoteRef := fmt.Sprintf("%s/%s", remote, baseName)
+			if strings.Contains(branches, remoteRef) {
+				return baseName, nil
+			}
+		}
 	}
 
-	// Default to main branch if no other branch is found
-	return "main"
+	return "main", nil
 }
