@@ -44,7 +44,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	if generatedBody := utils.GenerateBody(commits, diff); generatedBody != nil {
+	template, err := utils.GetPRTemplate()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting PR template: %v\n", err)
+		os.Exit(1)
+	}
+
+	if generatedBody := utils.GenerateBody(commits, diff, template); generatedBody != nil {
 		args = append(args, "--body", *generatedBody)
 	}
 
