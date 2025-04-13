@@ -9,27 +9,60 @@ import (
 )
 
 func main() {
-	baseBranch := utils.DetectBaseBranch()
-	commits := utils.GetCommitsHistory(baseBranch)
+	baseBranch, err := utils.DetectBaseBranch()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error detecting base branch: %v\n", err)
+		os.Exit(1)
+	}
+	
+	commits, err := utils.GetCommitsHistory(baseBranch)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting commit history: %v\n", err)
+		os.Exit(1)
+	}
 
 	var fullTitle string
 
 	if generatedTitle := utils.GenerateTitle(commits); generatedTitle != nil {
 		fullTitle = *generatedTitle
 	} else {
-		defaulTitle := utils.GetDefaultTitle(baseBranch)
+		defaultTitle, err := utils.GetDefaultTitle(baseBranch)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error getting default title: %v\n", err)
+			os.Exit(1)
+		}
 
-		fullTitle = fmt.Sprintf("%s %s", utils.GetRandomEmoji(), defaulTitle)
+		fullTitle = fmt.Sprintf("%s %s", utils.GetRandomEmoji(), defaultTitle)
 	}
 
 	extraArgs := os.Args[1:]
+	args := []string{"pr", "create", "--title", fullTitle}
 
-	args := append([]string{"pr", "create", "--title", fullTitle}, extraArgs...)
+	diff, err := utils.GetDiff(baseBranch)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting diff: %v\n", err)
+		os.Exit(1)
+	}
+
+	template, err := utils.GetPRTemplate()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting PR template: %v\n", err)
+		os.Exit(1)
+	}
+
+	if generatedBody := utils.GenerateBody(commits, diff, template); generatedBody != nil {
+		args = append(args, "--body", *generatedBody)
+	}
+
+	args = append(args, extraArgs...)
 
 	cmd := exec.Command("gh", args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 
-	cmd.Run()
+	if err := cmd.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error creating pull request: %v\n", err)
+		os.Exit(1)
+	}
 }

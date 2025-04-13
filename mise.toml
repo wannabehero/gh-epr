@@ -3,3 +3,5 @@ go = "latest"
 
 [tasks]
 build = "go build -o gh-epr"
+local = "go build -o gh-epr && (gh extension remove gh-epr || true) && gh extension install . && printf \"\\033[32m✓\\033[0m Installed local extension\n\""
+prod = "go build -o gh-epr && (gh extension remove gh-epr || true) && gh extension install wannabehero/gh-epr"

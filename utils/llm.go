@@ -29,8 +29,44 @@ Commit messages:
 %s
 `
 
+const BODY_PROMPT = `
+Using the following commit messages and diff as context,
+generate a descriptive Pull Request body that summarizes the changes.
+Include a brief summary section with 1-3 bullet points describing the key changes.
+Be concise and to the point.
+
+Format it in Markdown with proper headings.
+
+Commit messages:
+%s
+
+Diff:
+%s
+`
+
+const BODY_PROMPT_WITH_TEMPLATE = `
+Using the following commit messages and diff as context,
+generate a descriptive Pull Request body that summarizes the changes.
+
+IMPORTANT: Format your response according to the provided PR template structure.
+Fill in the sections appropriately while maintaining the template format.
+
+PR Template:
+%s
+
+Commit messages:
+%s
+
+Diff:
+%s
+`
+
 type Response struct {
 	Title string `json:"title"`
+}
+
+type BodyResponse struct {
+	Body string `json:"body"`
 }
 
 func getAvailableGenerator() *gen.Generator {
@@ -66,4 +102,37 @@ func GenerateTitle(commits []string) *string {
 	}
 
 	return &response.Title
+}
+
+func GenerateBody(commits []string, diff string, template string) *string {
+	generator := getAvailableGenerator()
+
+	if generator == nil {
+		return nil
+	}
+
+	var res *gen.Response
+	var err error
+	commitsJoined := strings.Join(commits, "\n")
+
+	if template != "" {
+		res, err = generator.
+			Output(schema.From(BodyResponse{})).
+			Prompt(prompt.AsUser(fmt.Sprintf(BODY_PROMPT_WITH_TEMPLATE, template, commitsJoined, diff)))
+	} else {
+		res, err = generator.
+			Output(schema.From(BodyResponse{})).
+			Prompt(prompt.AsUser(fmt.Sprintf(BODY_PROMPT, commitsJoined, diff)))
+	}
+
+	if err != nil {
+		return nil
+	}
+
+	var response BodyResponse
+	if err = res.Unmarshal(&response); err != nil {
+		return nil
+	}
+
+	return &response.Body
 }
