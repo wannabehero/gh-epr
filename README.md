@@ -12,9 +12,10 @@ gh extension install wannabehero/gh-epr
 
 ## Configuration
 
-To make the best use of the tool set either:
+To make the best use of the tool set one of the following:
 - `OPENAI_API_KEY`
 - `ANTHROPIC_API_KEY`
+- `GEMINI_API_KEY`
 in your environment variables so it can use the LLM
 to generate relevant title automatically
 based on your current branch commits.

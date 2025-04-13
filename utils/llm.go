@@ -69,26 +69,25 @@ type BodyResponse struct {
 	Body string `json:"body"`
 }
 
-func getAvailableGenerator() *gen.Generator {
-	if key := os.Getenv("OPENAI_API_KEY"); key != "" {
-		return openai.New(key).Generator().Model(openai.GenModel_gpt4o)
-	}
-
-	if key := os.Getenv("ANTHROPIC_API_KEY"); key != "" {
-		return anthropic.New(key).Generator().Model(anthropic.GenModel_3_5_sonnet_latest)
-	}
-
-	return nil
+type LLMProvider interface {
+	GenerateTitle(commits []string) *string
+	GenerateBody(commits []string, diff string, template string) *string
 }
 
-func GenerateTitle(commits []string) *string {
-	generator := getAvailableGenerator()
+type BellmanProvider struct {
+	generator *gen.Generator
+}
 
-	if generator == nil {
+func newBellmanProvider(generator *gen.Generator) *BellmanProvider {
+	return &BellmanProvider{generator: generator}
+}
+
+func (p *BellmanProvider) GenerateTitle(commits []string) *string {
+	if p.generator == nil {
 		return nil
 	}
 
-	res, err := generator.
+	res, err := p.generator.
 		Output(schema.From(Response{})).
 		Prompt(prompt.AsUser(fmt.Sprintf(COMMITS_PROMPT, strings.Join(commits, "\n"))))
 
@@ -104,10 +103,8 @@ func GenerateTitle(commits []string) *string {
 	return &response.Title
 }
 
-func GenerateBody(commits []string, diff string, template string) *string {
-	generator := getAvailableGenerator()
-
-	if generator == nil {
+func (p *BellmanProvider) GenerateBody(commits []string, diff string, template string) *string {
+	if p.generator == nil {
 		return nil
 	}
 
@@ -116,11 +113,11 @@ func GenerateBody(commits []string, diff string, template string) *string {
 	commitsJoined := strings.Join(commits, "\n")
 
 	if template != "" {
-		res, err = generator.
+		res, err = p.generator.
 			Output(schema.From(BodyResponse{})).
 			Prompt(prompt.AsUser(fmt.Sprintf(BODY_PROMPT_WITH_TEMPLATE, template, commitsJoined, diff)))
 	} else {
-		res, err = generator.
+		res, err = p.generator.
 			Output(schema.From(BodyResponse{})).
 			Prompt(prompt.AsUser(fmt.Sprintf(BODY_PROMPT, commitsJoined, diff)))
 	}
@@ -135,4 +132,41 @@ func GenerateBody(commits []string, diff string, template string) *string {
 	}
 
 	return &response.Body
+}
+
+func getProvider() LLMProvider {
+	if key := os.Getenv("GEMINI_API_KEY"); key != "" {
+		provider := NewGeminiProvider(key)
+		if provider != nil {
+			return provider
+		}
+	}
+
+	if key := os.Getenv("OPENAI_API_KEY"); key != "" {
+		generator := openai.New(key).Generator().Model(openai.GenModel_gpt4o)
+		return newBellmanProvider(generator)
+	}
+
+	if key := os.Getenv("ANTHROPIC_API_KEY"); key != "" {
+		generator := anthropic.New(key).Generator().Model(anthropic.GenModel_3_5_sonnet_latest)
+		return newBellmanProvider(generator)
+	}
+
+	return nil
+}
+
+func GenerateTitle(commits []string) *string {
+	provider := getProvider()
+	if provider == nil {
+		return nil
+	}
+	return provider.GenerateTitle(commits)
+}
+
+func GenerateBody(commits []string, diff string, template string) *string {
+	provider := getProvider()
+	if provider == nil {
+		return nil
+	}
+	return provider.GenerateBody(commits, diff, template)
 }
