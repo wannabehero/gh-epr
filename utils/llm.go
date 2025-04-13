@@ -32,9 +32,8 @@ Commit messages:
 const BODY_PROMPT = `
 Using the following commit messages as a context
 generate a descriptive Pull Request body that summarizes the changes.
-Include:
-1. A brief summary section with 1-3 bullet points describing the key changes
-2. A test plan section that outlines how these changes should be tested
+Include a brief summary section with 1-3 bullet points describing the key changes.
+Be concise and to the point.
 
 Format it in Markdown with proper headings.
 
