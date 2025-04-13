@@ -90,7 +90,6 @@ func (p *BellmanProvider) GenerateTitle(commits []string) *string {
 	res, err := p.generator.
 		Output(schema.From(Response{})).
 		Prompt(prompt.AsUser(fmt.Sprintf(COMMITS_PROMPT, strings.Join(commits, "\n"))))
-
 	if err != nil {
 		return nil
 	}

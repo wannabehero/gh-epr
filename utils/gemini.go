@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
+
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
 )
@@ -23,9 +23,9 @@ func NewGeminiProvider(apiKey string) *GeminiProvider {
 		return nil
 	}
 	model := client.GenerativeModel("gemini-2.0-flash")
-	
+
 	model.ResponseMIMEType = "application/json"
-	
+
 	return &GeminiProvider{
 		client: client,
 		model:  model,
@@ -37,7 +37,7 @@ func (p *GeminiProvider) GenerateTitle(commits []string) *string {
 	if p.model == nil {
 		return nil
 	}
-	
+
 	p.model.ResponseSchema = &genai.Schema{
 		Type: genai.TypeObject,
 		Properties: map[string]*genai.Schema{
@@ -45,17 +45,16 @@ func (p *GeminiProvider) GenerateTitle(commits []string) *string {
 		},
 		Required: []string{"title"},
 	}
-	
+
 	prompt := fmt.Sprintf("%s\n%s", SYSTEM_PROMPT, fmt.Sprintf(COMMITS_PROMPT, strings.Join(commits, "\n")))
-	
+
 	fullPrompt := fmt.Sprintf("%s\nRespond with a JSON object containing only a 'title' field.", prompt)
-	
+
 	resp, err := p.model.GenerateContent(p.ctx, genai.Text(fullPrompt))
 	if err != nil || len(resp.Candidates) == 0 {
-		fmt.Fprintf(os.Stderr, "DEBUG: Gemini title generation error: %v\n", err)
 		return nil
 	}
-	
+
 	var text string
 	if resp.Candidates[0].Content != nil {
 		for _, part := range resp.Candidates[0].Content.Parts {
@@ -64,19 +63,16 @@ func (p *GeminiProvider) GenerateTitle(commits []string) *string {
 			}
 		}
 	}
-	
-	fmt.Fprintf(os.Stderr, "DEBUG: Gemini raw response: %s\n", text)
-	
+
 	var response Response
 	if err := json.Unmarshal([]byte(text), &response); err != nil {
-		fmt.Fprintf(os.Stderr, "DEBUG: Gemini GenerateTitle JSON unmarshal error: %v\n", err)
 		return nil
 	}
-	
+
 	if response.Title == "" {
 		return nil
 	}
-	
+
 	return &response.Title
 }
 
@@ -84,7 +80,7 @@ func (p *GeminiProvider) GenerateBody(commits []string, diff string, template st
 	if p.model == nil {
 		return nil
 	}
-	
+
 	p.model.ResponseSchema = &genai.Schema{
 		Type: genai.TypeObject,
 		Properties: map[string]*genai.Schema{
@@ -92,7 +88,7 @@ func (p *GeminiProvider) GenerateBody(commits []string, diff string, template st
 		},
 		Required: []string{"body"},
 	}
-	
+
 	var prompt string
 	commitsJoined := strings.Join(commits, "\n")
 	if template != "" {
@@ -100,15 +96,14 @@ func (p *GeminiProvider) GenerateBody(commits []string, diff string, template st
 	} else {
 		prompt = fmt.Sprintf(BODY_PROMPT, commitsJoined, diff)
 	}
-	
+
 	fullPrompt := fmt.Sprintf("%s\nRespond with a JSON object containing only a 'body' field.", prompt)
-	
+
 	resp, err := p.model.GenerateContent(p.ctx, genai.Text(fullPrompt))
 	if err != nil || len(resp.Candidates) == 0 {
-		fmt.Fprintf(os.Stderr, "DEBUG: Gemini body generation error: %v\n", err)
 		return nil
 	}
-	
+
 	var text string
 	if resp.Candidates[0].Content != nil {
 		for _, part := range resp.Candidates[0].Content.Parts {
@@ -117,18 +112,15 @@ func (p *GeminiProvider) GenerateBody(commits []string, diff string, template st
 			}
 		}
 	}
-	
-	fmt.Fprintf(os.Stderr, "DEBUG: Gemini raw body response: %s\n", text)
-	
+
 	var response BodyResponse
 	if err := json.Unmarshal([]byte(text), &response); err != nil {
-		fmt.Fprintf(os.Stderr, "DEBUG: Gemini GenerateBody JSON unmarshal error: %v\n", err)
 		return nil
 	}
-	
+
 	if response.Body == "" {
 		return nil
 	}
-	
+
 	return &response.Body
 }
