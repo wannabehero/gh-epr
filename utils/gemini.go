@@ -9,14 +9,6 @@ import (
 	"google.golang.org/api/option"
 )
 
-type Response struct {
-	Title string `json:"title"`
-}
-
-type BodyResponse struct {
-	Body string `json:"body"`
-}
-
 type GeminiProvider struct {
 	client *genai.Client
 	model  *genai.GenerativeModel
@@ -47,7 +39,6 @@ func (p *GeminiProvider) generateJSON(prompt string, jsonFormat string) (string,
 	}
 	
 	fullPrompt := fmt.Sprintf("%s\n%s", prompt, fmt.Sprintf(jsonInstructionTemplate, jsonFormat))
-	p.model.SetResponseMIMEType("application/json")
 	
 	resp, err := p.model.GenerateContent(p.ctx, genai.Text(fullPrompt))
 	if err != nil || len(resp.Candidates) == 0 {
