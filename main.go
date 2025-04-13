@@ -38,7 +38,13 @@ func main() {
 	extraArgs := os.Args[1:]
 	args := []string{"pr", "create", "--title", fullTitle}
 
-	if generatedBody := utils.GenerateBody(commits); generatedBody != nil {
+	diff, err := utils.GetDiff(baseBranch)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting diff: %v\n", err)
+		os.Exit(1)
+	}
+
+	if generatedBody := utils.GenerateBody(commits, diff); generatedBody != nil {
 		args = append(args, "--body", *generatedBody)
 	}
 

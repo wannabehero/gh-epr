@@ -30,7 +30,7 @@ Commit messages:
 `
 
 const BODY_PROMPT = `
-Using the following commit messages as a context
+Using the following commit messages and diff as context,
 generate a descriptive Pull Request body that summarizes the changes.
 Include a brief summary section with 1-3 bullet points describing the key changes.
 Be concise and to the point.
@@ -38,6 +38,9 @@ Be concise and to the point.
 Format it in Markdown with proper headings.
 
 Commit messages:
+%s
+
+Diff:
 %s
 `
 
@@ -84,7 +87,7 @@ func GenerateTitle(commits []string) *string {
 	return &response.Title
 }
 
-func GenerateBody(commits []string) *string {
+func GenerateBody(commits []string, diff string) *string {
 	generator := getAvailableGenerator()
 
 	if generator == nil {
@@ -93,7 +96,7 @@ func GenerateBody(commits []string) *string {
 
 	res, err := generator.
 		Output(schema.From(BodyResponse{})).
-		Prompt(prompt.AsUser(fmt.Sprintf(BODY_PROMPT, strings.Join(commits, "\n"))))
+		Prompt(prompt.AsUser(fmt.Sprintf(BODY_PROMPT, strings.Join(commits, "\n"), diff)))
 
 	if err != nil {
 		return nil

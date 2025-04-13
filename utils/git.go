@@ -15,17 +15,17 @@ func runCmd(name string, args ...string) (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
-func GetCommitsHistory(baseBranch string) ([]string, error) {
+func findRemoteRef(baseBranch string) (string, error) {
 	remotes, err := runCmd("git", "remote")
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	
 	remotesList := strings.Split(remotes, "\n")
 	
 	remoteRefs, err := runCmd("git", "branch", "-r")
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	
 	for _, remote := range remotesList {
@@ -35,17 +35,26 @@ func GetCommitsHistory(baseBranch string) ([]string, error) {
 		
 		remoteRef := fmt.Sprintf("%s/%s", remote, baseBranch)
 		
-		if !strings.Contains(remoteRefs, remoteRef) {
-			continue
-		}
-		
-		commits, err := runCmd("git", "log", "--pretty=format:%s", fmt.Sprintf("%s..HEAD", remoteRef))
-		if err == nil && commits != "" {
-			return strings.Split(commits, "\n"), nil
+		if strings.Contains(remoteRefs, remoteRef) {
+			return remoteRef, nil
 		}
 	}
 	
-	return []string{}, nil
+	return "", fmt.Errorf("no remote reference found for branch %s", baseBranch)
+}
+
+func GetCommitsHistory(baseBranch string) ([]string, error) {
+	remoteRef, err := findRemoteRef(baseBranch)
+	if err != nil {
+		return []string{}, nil
+	}
+	
+	commits, err := runCmd("git", "log", "--pretty=format:%s", fmt.Sprintf("%s..HEAD", remoteRef))
+	if err != nil || commits == "" {
+		return []string{}, nil
+	}
+	
+	return strings.Split(commits, "\n"), nil
 }
 
 func GetDefaultTitle(baseBranch string) (string, error) {
@@ -95,4 +104,18 @@ func DetectBaseBranch() (string, error) {
 	}
 
 	return "main", nil
+}
+
+func GetDiff(baseBranch string) (string, error) {
+	remoteRef, err := findRemoteRef(baseBranch)
+	if err != nil {
+		return "", nil
+	}
+	
+	diff, err := runCmd("git", "diff", remoteRef, "HEAD")
+	if err != nil {
+		return "", err
+	}
+	
+	return diff, nil
 }
