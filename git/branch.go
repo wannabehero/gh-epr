@@ -1,21 +1,9 @@
-package utils
+package git
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
 )
-
-func runCmd(name string, args ...string) (string, error) {
-	cmd := exec.Command(name, args...)
-	output, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("error running command '%s %s': %w", name, strings.Join(args, " "), err)
-	}
-	return strings.TrimSpace(string(output)), nil
-}
 
 func findRemoteRef(baseBranch string) (string, error) {
 	remotes, err := runCmd("git", "remote")
@@ -59,22 +47,17 @@ func GetCommitsHistory(baseBranch string) ([]string, error) {
 	return strings.Split(commits, "\n"), nil
 }
 
-func GetDefaultTitle(baseBranch string) (string, error) {
-	messages, err := GetCommitsHistory(baseBranch)
-	if err != nil {
-		return "", err
-	}
-
-	if len(messages) == 1 && messages[0] != "" {
-		return messages[0], nil
+func GenerateTitle(commits []string) *string {
+	if len(commits) == 1 && commits[0] != "" {
+		return &commits[0]
 	}
 
 	branchName, err := runCmd("git", "rev-parse", "--abbrev-ref", "HEAD")
 	if err != nil {
-		return "", err
+		return nil
 	}
 
-	return branchName, nil
+	return &branchName
 }
 
 func DetectBaseBranch() (string, error) {
@@ -120,32 +103,4 @@ func GetDiff(baseBranch string) (string, error) {
 	}
 
 	return diff, nil
-}
-
-func GetPRTemplate() (string, error) {
-	repoRoot, err := runCmd("git", "rev-parse", "--show-toplevel")
-	if err != nil {
-		return "", err
-	}
-
-	githubDir := filepath.Join(repoRoot, ".github")
-	if _, err := os.Stat(githubDir); os.IsNotExist(err) {
-		return "", nil
-	}
-
-	dirEntries, err := os.ReadDir(githubDir)
-	if err != nil {
-		return "", nil
-	}
-
-	for _, entry := range dirEntries {
-		if !entry.IsDir() && strings.EqualFold(entry.Name(), "pull_request_template.md") {
-			content, err := os.ReadFile(filepath.Join(githubDir, entry.Name()))
-			if err == nil {
-				return string(content), nil
-			}
-		}
-	}
-
-	return "", nil
 }

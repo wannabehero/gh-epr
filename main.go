@@ -5,55 +5,61 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/wannabehero/gh-epr/git"
+	"github.com/wannabehero/gh-epr/llm"
 	"github.com/wannabehero/gh-epr/utils"
 )
 
+func getTitle(commits []string) *string {
+	if generatedTitle := llm.GenerateTitle(commits); generatedTitle != nil {
+		return generatedTitle
+	} else if defaultTitle := git.GenerateTitle(commits); defaultTitle != nil {
+		title := fmt.Sprintf("%s %s", utils.GetRandomEmoji(), *defaultTitle)
+		return &title
+	}
+	return nil
+}
+
+func getBody(commits []string, diff string, template string) *string {
+	return llm.GenerateBody(commits, diff, template)
+}
+
 func main() {
-	baseBranch, err := utils.DetectBaseBranch()
+	baseBranch, err := git.DetectBaseBranch()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error detecting base branch: %v\n", err)
 		os.Exit(1)
 	}
-	
-	commits, err := utils.GetCommitsHistory(baseBranch)
+
+	commits, err := git.GetCommitsHistory(baseBranch)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error getting commit history: %v\n", err)
 		os.Exit(1)
 	}
 
-	var fullTitle string
-
-	if generatedTitle := utils.GenerateTitle(commits); generatedTitle != nil {
-		fullTitle = *generatedTitle
-	} else {
-		defaultTitle, err := utils.GetDefaultTitle(baseBranch)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error getting default title: %v\n", err)
-			os.Exit(1)
-		}
-
-		fullTitle = fmt.Sprintf("%s %s", utils.GetRandomEmoji(), defaultTitle)
-	}
-
-	extraArgs := os.Args[1:]
-	args := []string{"pr", "create", "--title", fullTitle}
-
-	diff, err := utils.GetDiff(baseBranch)
+	diff, err := git.GetDiff(baseBranch)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error getting diff: %v\n", err)
 		os.Exit(1)
 	}
 
-	template, err := utils.GetPRTemplate()
+	template, err := git.GetPRTemplate()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error getting PR template: %v\n", err)
 		os.Exit(1)
 	}
 
-	if generatedBody := utils.GenerateBody(commits, diff, template); generatedBody != nil {
-		args = append(args, "--body", *generatedBody)
+	args := []string{"pr", "create"}
+
+	if title := getTitle(commits); title != nil {
+		args = append(args, "--title", *title)
 	}
 
+	if body := getBody(commits, diff, template); body != nil {
+		args = append(args, "--body", *body)
+	}
+
+	extraArgs := os.Args[1:]
 	args = append(args, extraArgs...)
 
 	cmd := exec.Command("gh", args...)
