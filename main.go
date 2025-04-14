@@ -4,24 +4,37 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"sync"
 
 	"github.com/wannabehero/gh-epr/git"
 	"github.com/wannabehero/gh-epr/llm"
 	"github.com/wannabehero/gh-epr/utils"
 )
 
-func getTitle(commits []string) *string {
-	if generatedTitle := llm.GenerateTitle(commits); generatedTitle != nil {
-		return generatedTitle
-	} else if defaultTitle := git.GenerateTitle(commits); defaultTitle != nil {
-		title := fmt.Sprintf("%s %s", utils.GetRandomEmoji(), *defaultTitle)
-		return &title
-	}
-	return nil
-}
+func getTitleAndBody(commits []string, diff string, template string) (*string, *string) {
+	var title, body *string
 
-func getBody(commits []string, diff string, template string) *string {
-	return llm.GenerateBody(commits, diff, template)
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		if generatedTitle := llm.GenerateTitle(commits); generatedTitle != nil {
+			title = generatedTitle
+		} else if defaultTitle := git.GenerateTitle(commits); defaultTitle != nil {
+			value := fmt.Sprintf("%s %s", utils.GetRandomEmoji(), *defaultTitle)
+			title = &value
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		body = llm.GenerateBody(commits, diff, template)
+	}()
+
+	wg.Wait()
+
+	return title, body
 }
 
 func main() {
@@ -51,11 +64,13 @@ func main() {
 
 	args := []string{"pr", "create"}
 
-	if title := getTitle(commits); title != nil {
+	title, body := getTitleAndBody(commits, diff, template)
+
+	if title != nil {
 		args = append(args, "--title", *title)
 	}
 
-	if body := getBody(commits, diff, template); body != nil {
+	if body != nil {
 		args = append(args, "--body", *body)
 	}
 

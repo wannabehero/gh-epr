@@ -28,7 +28,7 @@ const BODY_PROMPT = `
 Using the following commit messages and diff as context,
 generate a descriptive Pull Request body that summarizes the changes.
 Include a brief summary section with 1-3 bullet points describing the key changes.
-Be concise and to the point.
+Be very concise and to the point.
 
 Format it in Markdown with proper headings.
 
@@ -42,6 +42,7 @@ Diff:
 const BODY_PROMPT_WITH_TEMPLATE = `
 Using the following commit messages and diff as context,
 generate a descriptive Pull Request body that summarizes the changes.
+Be very concise and to the point.
 
 IMPORTANT: Format your response according to the provided PR template structure.
 Fill in the sections appropriately while maintaining the template format.
