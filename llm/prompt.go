@@ -1,53 +1,37 @@
 package llm
 
 import (
+	"context"
+	"fmt"
 	"os"
-
-	"github.com/modfin/bellman/services/anthropic"
-	"github.com/modfin/bellman/services/openai"
+	"strings"
 )
 
-const SYSTEM_PROMPT = `You a git commit messages
-summariser that produce playful Pull Reuqest titles
-prefixed with an emoji.
-Your responses are consise`
+const SYSTEM_PROMPT = `You are a tool that summarises git commit messages
+and git diffs to generate a descriptive Pull Request title and body.
 
-const COMMITS_PROMPT = `
-Using the following commit messages as a context
-generate a descriptive consise Pull Request title
-that would describe the changes in no more than 10 words.
-Start with a verb like "create", "fixe", "update", etc.
+Title describes the changes in no more than 10 words.
+Start with a verb like "create", "fix", "update", etc.
 Put a random emoji that describes the context in front of the title.
 For instance: '👾 Update the build CI workflow'
 
-Commit messages:
-%s
-`
+Your responses are concise and to the point`
 
-const BODY_PROMPT = `
-Using the following commit messages and diff as context,
-generate a descriptive Pull Request body that summarizes the changes.
-Include a brief summary section with 1-3 bullet points describing the key changes.
-Be very concise and to the point.
-
-Format it in Markdown with proper headings.
-
-Commit messages:
-%s
-
-Diff:
-%s
-`
-
-const BODY_PROMPT_WITH_TEMPLATE = `
-Using the following commit messages and diff as context,
-generate a descriptive Pull Request body that summarizes the changes.
-Be very concise and to the point.
-
-IMPORTANT: Format your response according to the provided PR template structure.
+const BODY_TEMPLATE_PROMPT = `IMPORTANT FOR THE BODY: Format your response according to the provided PR template structure.
 Fill in the sections appropriately while maintaining the template format.
 
 PR Template:
+%s`
+
+const USER_PROMPT = `
+Using the following commit messages and a diff as a context
+generate a descriptive consise Pull Request title and body that summarizes the changes.
+
+For the title include an emoji that describes the context to the start.
+
+For the body include a brief summary section with 1-3 bullet points describing the key changes.
+Format it in Markdown with proper headings.
+
 %s
 
 Commit messages:
@@ -57,47 +41,50 @@ Diff:
 %s
 `
 
+func getUserPrompt(commits []string, diff string, prTemplate string) string {
+	var prTermplatePrompt string
+	if prTemplate != "" {
+		prTermplatePrompt = fmt.Sprintf(BODY_TEMPLATE_PROMPT, prTemplate)
+	} else {
+		prTermplatePrompt = ""
+	}
+
+	prompt := fmt.Sprintf(USER_PROMPT, prTermplatePrompt, strings.Join(commits, "\n"), diff)
+	return prompt
+}
+
 type Response struct {
 	Title string `json:"title"`
+	Body  string `json:"body"`
 }
 
-type BodyResponse struct {
-	Body string `json:"body"`
-}
-
-func getProvider() LLMProvider {
+func getProvider(ctx context.Context) LLMProvider {
 	if key := os.Getenv("GEMINI_API_KEY"); key != "" {
-		provider := NewGeminiProvider(key)
+		provider := NewGeminiProvider(key, ctx)
 		if provider != nil {
 			return provider
 		}
 	}
 
 	if key := os.Getenv("OPENAI_API_KEY"); key != "" {
-		generator := openai.New(key).Generator().Model(openai.GenModel_gpt4o)
-		return newBellmanProvider(generator)
+		provider := NewOpenaiProvider(key, ctx)
+		if provider != nil {
+			return provider
+		}
 	}
 
-	if key := os.Getenv("ANTHROPIC_API_KEY"); key != "" {
-		generator := anthropic.New(key).Generator().Model(anthropic.GenModel_3_5_sonnet_latest)
-		return newBellmanProvider(generator)
-	}
+	// if key := os.Getenv("ANTHROPIC_API_KEY"); key != "" {
+	// 	generator := anthropic.New(key).Generator().Model(anthropic.GenModel_3_5_sonnet_latest)
+	// 	return newBellmanProvider(generator)
+	// }
 
 	return nil
 }
 
-func GenerateTitle(commits []string) *string {
-	provider := getProvider()
+func GenerateTitleAndBody(commits []string, diff string, template string, ctx context.Context) (*string, *string) {
+	provider := getProvider(ctx)
 	if provider == nil {
-		return nil
+		return nil, nil
 	}
-	return provider.GenerateTitle(commits)
-}
-
-func GenerateBody(commits []string, diff string, template string) *string {
-	provider := getProvider()
-	if provider == nil {
-		return nil
-	}
-	return provider.GenerateBody(commits, diff, template)
+	return provider.GenerateTitleAndBody(commits, diff, template)
 }
