@@ -10,7 +10,6 @@ import (
 
 type GeminiProvider struct {
 	client *genai.Client
-	ctx    context.Context
 
 	modelName string
 }
@@ -23,7 +22,6 @@ func NewGeminiProvider(apiKey string, ctx context.Context) *GeminiProvider {
 
 	return &GeminiProvider{
 		client: client,
-		ctx:    ctx,
 
 		modelName: "gemini-2.0-flash",
 	}
@@ -36,7 +34,7 @@ func (p *GeminiProvider) newModelWithSchema(schema *genai.Schema) *genai.Generat
 	return model
 }
 
-func (p *GeminiProvider) GenerateTitleAndBody(commits []string, diff string, prTemplate string) (*string, *string) {
+func (p *GeminiProvider) GenerateTitleAndBody(commits []string, diff string, prTemplate string, ctx context.Context) (*string, *string) {
 	model := p.newModelWithSchema(&genai.Schema{
 		Type: genai.TypeObject,
 		Properties: map[string]*genai.Schema{
@@ -49,7 +47,7 @@ func (p *GeminiProvider) GenerateTitleAndBody(commits []string, diff string, prT
 
 	prompt := getUserPrompt(commits, diff, prTemplate)
 
-	resp, err := model.GenerateContent(p.ctx, genai.Text(prompt))
+	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil || len(resp.Candidates) == 0 {
 		return nil, nil
 	}

@@ -11,10 +11,9 @@ import (
 
 type OpenaiProvider struct {
 	client *openai.Client
-	ctx    context.Context
 }
 
-func GenerateOpenaiSchema[T any]() any {
+func generateSchema[T any]() *jsonschema.Schema {
 	reflector := jsonschema.Reflector{
 		AllowAdditionalProperties: false,
 		DoNotReference:            true,
@@ -24,27 +23,26 @@ func GenerateOpenaiSchema[T any]() any {
 	return schema
 }
 
-func NewOpenaiProvider(apiKey string, ctx context.Context) *OpenaiProvider {
+func NewOpenaiProvider(apiKey string) *OpenaiProvider {
 	client := openai.NewClient(
 		option.WithAPIKey(apiKey),
 	)
 	return &OpenaiProvider{
 		&client,
-		ctx,
 	}
 }
 
-func (p *OpenaiProvider) GenerateTitleAndBody(commits []string, diff string, prTemplate string) (*string, *string) {
+func (p *OpenaiProvider) GenerateTitleAndBody(commits []string, diff string, prTemplate string, ctx context.Context) (*string, *string) {
 	schema := openai.ResponseFormatJSONSchemaJSONSchemaParam{
 		Name:        "pr_description",
 		Description: openai.String("Description of a PR"),
-		Schema:      GenerateOpenaiSchema[Response](),
+		Schema:      generateSchema[Response](),
 		Strict:      openai.Bool(true),
 	}
 
 	prompt := getUserPrompt(commits, diff, prTemplate)
 
-	chat, _ := p.client.Chat.Completions.New(p.ctx, openai.ChatCompletionNewParams{
+	chat, _ := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
 			openai.DeveloperMessage(SYSTEM_PROMPT),
 			openai.UserMessage(prompt),

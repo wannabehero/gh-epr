@@ -3,6 +3,7 @@ module github.com/wannabehero/gh-epr
 go 1.24.2
 
 require (
+	github.com/anthropics/anthropic-sdk-go v0.2.0-beta.3
 	github.com/google/generative-ai-go v0.19.0
 	github.com/invopop/jsonschema v0.13.0
 	github.com/openai/openai-go v0.1.0-beta.10

@@ -67,7 +67,7 @@ func getProvider(ctx context.Context) LLMProvider {
 	}
 
 	if key := os.Getenv("OPENAI_API_KEY"); key != "" {
-		provider := NewOpenaiProvider(key, ctx)
+		provider := NewOpenaiProvider(key)
 		if provider != nil {
 			return provider
 		}
@@ -86,5 +86,5 @@ func GenerateTitleAndBody(commits []string, diff string, template string, ctx co
 	if provider == nil {
 		return nil, nil
 	}
-	return provider.GenerateTitleAndBody(commits, diff, template)
+	return provider.GenerateTitleAndBody(commits, diff, template, ctx)
 }
