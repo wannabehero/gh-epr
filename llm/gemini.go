@@ -9,8 +9,7 @@ import (
 )
 
 type GeminiProvider struct {
-	client *genai.Client
-
+	client    *genai.Client
 	modelName string
 }
 
@@ -21,9 +20,8 @@ func NewGeminiProvider(apiKey string, ctx context.Context) *GeminiProvider {
 	}
 
 	return &GeminiProvider{
-		client: client,
-
-		modelName: "gemini-2.0-flash",
+		client,
+		"gemini-2.0-flash",
 	}
 }
 

@@ -73,10 +73,12 @@ func getProvider(ctx context.Context) LLMProvider {
 		}
 	}
 
-	// if key := os.Getenv("ANTHROPIC_API_KEY"); key != "" {
-	// 	generator := anthropic.New(key).Generator().Model(anthropic.GenModel_3_5_sonnet_latest)
-	// 	return newBellmanProvider(generator)
-	// }
+	if key := os.Getenv("ANTHROPIC_API_KEY"); key != "" {
+		provider := NewAnthropicProvider(key)
+		if provider != nil {
+			return provider
+		}
+	}
 
 	return nil
 }

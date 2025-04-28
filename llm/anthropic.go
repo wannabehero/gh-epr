@@ -10,6 +10,7 @@ import (
 
 type AnthropicProvider struct {
 	client *anthropic.Client
+	modelName string
 }
 
 func NewAnthropicProvider(apiKey string) *AnthropicProvider {
@@ -18,6 +19,7 @@ func NewAnthropicProvider(apiKey string) *AnthropicProvider {
 	)
 	return &AnthropicProvider{
 		&client,
+		"claude-3-5-haiku-latest",
 	}
 }
 
@@ -35,7 +37,7 @@ func (p *AnthropicProvider) GenerateTitleAndBody(commits []string, diff string, 
 	}
 
 	message, err := p.client.Messages.New(ctx, anthropic.MessageNewParams{
-		Model:     anthropic.ModelClaude3_7SonnetLatest,
+		Model:     p.modelName,
 		MaxTokens: 1024,
 		System: []anthropic.TextBlockParam{
 			{Text: SYSTEM_PROMPT},

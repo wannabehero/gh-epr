@@ -10,7 +10,8 @@ import (
 )
 
 type OpenaiProvider struct {
-	client *openai.Client
+	client    *openai.Client
+	modelName string
 }
 
 func generateSchema[T any]() *jsonschema.Schema {
@@ -29,6 +30,7 @@ func NewOpenaiProvider(apiKey string) *OpenaiProvider {
 	)
 	return &OpenaiProvider{
 		&client,
+		"gpt-4o-mini",
 	}
 }
 
@@ -52,7 +54,7 @@ func (p *OpenaiProvider) GenerateTitleAndBody(commits []string, diff string, prT
 				JSONSchema: schema,
 			},
 		},
-		Model: openai.ChatModelGPT4o,
+		Model: p.modelName,
 	})
 
 	var response Response
