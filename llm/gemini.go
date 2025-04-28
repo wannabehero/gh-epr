@@ -21,7 +21,7 @@ func NewGeminiProvider(apiKey string, ctx context.Context) *GeminiProvider {
 
 	return &GeminiProvider{
 		client,
-		"gemini-2.0-flash",
+		"gemini-2.5-flash-preview-04-17",
 	}
 }
 
