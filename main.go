@@ -1,38 +1,25 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
-	"sync"
 
 	"github.com/wannabehero/gh-epr/git"
 	"github.com/wannabehero/gh-epr/llm"
 	"github.com/wannabehero/gh-epr/utils"
 )
 
-func getTitleAndBody(commits []string, diff string, template string) (*string, *string) {
-	var title, body *string
+func getTitleAndBody(commits []string, diff string, template string, ctx context.Context) (*string, *string) {
+	title, body := llm.GenerateTitleAndBody(commits, diff, template, ctx)
 
-	var wg sync.WaitGroup
-	wg.Add(2)
-
-	go func() {
-		defer wg.Done()
-		if generatedTitle := llm.GenerateTitle(commits); generatedTitle != nil {
-			title = generatedTitle
-		} else if defaultTitle := git.GenerateTitle(commits); defaultTitle != nil {
+	if title == nil {
+		if defaultTitle := git.GenerateTitle(commits); defaultTitle != nil {
 			value := fmt.Sprintf("%s %s", utils.GetRandomEmoji(), *defaultTitle)
 			title = &value
 		}
-	}()
-
-	go func() {
-		defer wg.Done()
-		body = llm.GenerateBody(commits, diff, template)
-	}()
-
-	wg.Wait()
+	}
 
 	return title, body
 }
@@ -64,7 +51,8 @@ func main() {
 
 	args := []string{"pr", "create"}
 
-	title, body := getTitleAndBody(commits, diff, template)
+	ctx := context.Background()
+	title, body := getTitleAndBody(commits, diff, template, ctx)
 
 	if title != nil {
 		args = append(args, "--title", *title)
