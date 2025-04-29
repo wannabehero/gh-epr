@@ -7,6 +7,7 @@ import (
 	"github.com/invopop/jsonschema"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
+	"github.com/spf13/viper"
 )
 
 type OpenaiProvider struct {
@@ -30,7 +31,7 @@ func NewOpenaiProvider(apiKey string) *OpenaiProvider {
 	)
 	return &OpenaiProvider{
 		&client,
-		"gpt-4o-mini",
+		viper.GetString("openai.model_name"),
 	}
 }
 
@@ -46,7 +47,7 @@ func (p *OpenaiProvider) GenerateTitleAndBody(commits []string, diff string, prT
 
 	chat, _ := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.DeveloperMessage(SYSTEM_PROMPT),
+			openai.DeveloperMessage(getSystemPrompt()),
 			openai.UserMessage(prompt),
 		},
 		ResponseFormat: openai.ChatCompletionNewParamsResponseFormatUnion{

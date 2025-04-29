@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/spf13/viper"
 )
 
 const SYSTEM_PROMPT = `You are a tool that summarises git commit messages
@@ -51,6 +53,13 @@ func getUserPrompt(commits []string, diff string, prTemplate string) string {
 
 	prompt := fmt.Sprintf(USER_PROMPT, prTermplatePrompt, strings.Join(commits, "\n"), diff)
 	return prompt
+}
+
+func getSystemPrompt() string {
+	if prompt := viper.GetString("system_prompt_override"); prompt != "" {
+		return prompt
+	}
+	return SYSTEM_PROMPT
 }
 
 type Response struct {
