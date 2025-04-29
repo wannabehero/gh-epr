@@ -6,9 +6,10 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/wannabehero/gh-epr/git"
-	"github.com/wannabehero/gh-epr/llm"
-	"github.com/wannabehero/gh-epr/utils"
+	"github.com/wannabehero/gh-aipr/config"
+	"github.com/wannabehero/gh-aipr/git"
+	"github.com/wannabehero/gh-aipr/llm"
+	"github.com/wannabehero/gh-aipr/utils"
 )
 
 func getTitleAndBody(commits []string, diff string, template string, ctx context.Context) (*string, *string) {
@@ -25,6 +26,8 @@ func getTitleAndBody(commits []string, diff string, template string, ctx context
 }
 
 func main() {
+	config.LoadConfig()
+
 	baseBranch, err := git.DetectBaseBranch()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error detecting base branch: %v\n", err)

@@ -6,6 +6,7 @@ import (
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
+	"github.com/spf13/viper"
 )
 
 type AnthropicProvider struct {
@@ -19,7 +20,7 @@ func NewAnthropicProvider(apiKey string) *AnthropicProvider {
 	)
 	return &AnthropicProvider{
 		&client,
-		"claude-3-5-haiku-latest",
+		viper.GetString("anthropic.model_name"),
 	}
 }
 
@@ -40,7 +41,7 @@ func (p *AnthropicProvider) GenerateTitleAndBody(commits []string, diff string, 
 		Model:     p.modelName,
 		MaxTokens: 1024,
 		System: []anthropic.TextBlockParam{
-			{Text: SYSTEM_PROMPT},
+			{Text: getSystemPrompt()},
 		},
 		Messages: []anthropic.MessageParam{{
 			Role: anthropic.MessageParamRoleUser,

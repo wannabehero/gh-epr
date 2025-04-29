@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/google/generative-ai-go/genai"
+	"github.com/spf13/viper"
 	"google.golang.org/api/option"
 )
 
@@ -21,7 +22,7 @@ func NewGeminiProvider(apiKey string, ctx context.Context) *GeminiProvider {
 
 	return &GeminiProvider{
 		client,
-		"gemini-2.5-flash-preview-04-17",
+		viper.GetString("gemini.model_name"),
 	}
 }
 
@@ -41,7 +42,7 @@ func (p *GeminiProvider) GenerateTitleAndBody(commits []string, diff string, prT
 		},
 		Required: []string{"body", "title"},
 	})
-	model.SystemInstruction = genai.NewUserContent(genai.Text(SYSTEM_PROMPT))
+	model.SystemInstruction = genai.NewUserContent(genai.Text(getSystemPrompt()))
 
 	prompt := getUserPrompt(commits, diff, prTemplate)
 
