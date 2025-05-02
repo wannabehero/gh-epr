@@ -75,27 +75,58 @@ type Response struct {
 }
 
 func getProvider(ctx context.Context) LLMProvider {
-	if key := os.Getenv("GEMINI_API_KEY"); key != "" {
-		provider := NewGeminiProvider(key, ctx)
-		if provider != nil {
-			return provider
+	// Define provider configurations
+	providerConfigs := map[string]struct {
+		envKey string
+		initFn func(string, context.Context) LLMProvider
+	}{
+		"gemini": {
+			envKey: "GEMINI_API_KEY",
+			initFn: func(key string, ctx context.Context) LLMProvider {
+				return NewGeminiProvider(key, ctx)
+			},
+		},
+		"openai": {
+			envKey: "OPENAI_API_KEY",
+			initFn: func(key string, ctx context.Context) LLMProvider {
+				return NewOpenaiProvider(key)
+			},
+		},
+		"anthropic": {
+			envKey: "ANTHROPIC_API_KEY",
+			initFn: func(key string, ctx context.Context) LLMProvider {
+				return NewAnthropicProvider(key)
+			},
+		},
+	}
+
+	configuredProvider := viper.GetString("provider")
+	
+	providersToTry := []string{"gemini", "openai", "anthropic"}
+	if configuredProvider != "" {
+		if _, exists := providerConfigs[configuredProvider]; !exists {
+			fmt.Fprintf(os.Stderr, "Error: Unknown provider '%s' specified in config\n", configuredProvider)
+			return nil
+		}
+		providersToTry = []string{configuredProvider}
+	}
+
+	for _, providerName := range providersToTry {
+		config := providerConfigs[providerName]
+		if key := os.Getenv(config.envKey); key != "" {
+			if provider := config.initFn(key, ctx); provider != nil {
+				return provider
+			}
+		} else if configuredProvider != "" {
+			fmt.Fprintf(os.Stderr, "Error: Provider '%s' specified in config but %s is not set\n", 
+				providerName, config.envKey)
+			return nil
 		}
 	}
 
-	if key := os.Getenv("OPENAI_API_KEY"); key != "" {
-		provider := NewOpenaiProvider(key)
-		if provider != nil {
-			return provider
-		}
+	if configuredProvider == "" {
+		fmt.Fprintf(os.Stderr, "Error: No API keys found for any supported provider (OpenAI, Anthropic, Gemini)\n")
 	}
-
-	if key := os.Getenv("ANTHROPIC_API_KEY"); key != "" {
-		provider := NewAnthropicProvider(key)
-		if provider != nil {
-			return provider
-		}
-	}
-
 	return nil
 }
 
