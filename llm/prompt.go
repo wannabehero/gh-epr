@@ -75,36 +75,35 @@ type Response struct {
 }
 
 func getProvider(ctx context.Context) LLMProvider {
-	// Define provider configurations
-	providerConfigs := map[string]struct {
-		envKey string
-		initFn func(string, context.Context) LLMProvider
-	}{
-		"gemini": {
-			envKey: "GEMINI_API_KEY",
-			initFn: func(key string, ctx context.Context) LLMProvider {
-				return NewGeminiProvider(key, ctx)
-			},
+	providerCreators := map[string]func(context.Context) LLMProvider{
+		"gemini": func(ctx context.Context) LLMProvider {
+			key := os.Getenv("GEMINI_API_KEY")
+			if key == "" {
+				return nil
+			}
+			return NewGeminiProvider(key, ctx)
 		},
-		"openai": {
-			envKey: "OPENAI_API_KEY",
-			initFn: func(key string, ctx context.Context) LLMProvider {
-				return NewOpenaiProvider(key)
-			},
+		"openai": func(ctx context.Context) LLMProvider {
+			key := os.Getenv("OPENAI_API_KEY")
+			if key == "" {
+				return nil
+			}
+			return NewOpenaiProvider(key)
 		},
-		"anthropic": {
-			envKey: "ANTHROPIC_API_KEY",
-			initFn: func(key string, ctx context.Context) LLMProvider {
-				return NewAnthropicProvider(key)
-			},
+		"anthropic": func(ctx context.Context) LLMProvider {
+			key := os.Getenv("ANTHROPIC_API_KEY")
+			if key == "" {
+				return nil
+			}
+			return NewAnthropicProvider(key)
 		},
 	}
 
 	configuredProvider := viper.GetString("provider")
-	
+
 	providersToTry := []string{"gemini", "openai", "anthropic"}
 	if configuredProvider != "" {
-		if _, exists := providerConfigs[configuredProvider]; !exists {
+		if _, exists := providerCreators[configuredProvider]; !exists {
 			fmt.Fprintf(os.Stderr, "Error: Unknown provider '%s' specified in config\n", configuredProvider)
 			return nil
 		}
@@ -112,20 +111,17 @@ func getProvider(ctx context.Context) LLMProvider {
 	}
 
 	for _, providerName := range providersToTry {
-		config := providerConfigs[providerName]
-		if key := os.Getenv(config.envKey); key != "" {
-			if provider := config.initFn(key, ctx); provider != nil {
-				return provider
-			}
+		createFn := providerCreators[providerName]
+		if provider := createFn(ctx); provider != nil {
+			return provider
 		} else if configuredProvider != "" {
-			fmt.Fprintf(os.Stderr, "Error: Provider '%s' specified in config but %s is not set\n", 
-				providerName, config.envKey)
+			fmt.Fprintf(os.Stderr, "Error: Provider '%s' specified in config but required API key is not set\n", providerName)
 			return nil
 		}
 	}
 
 	if configuredProvider == "" {
-		fmt.Fprintf(os.Stderr, "Error: No API keys found for any supported provider (OpenAI, Anthropic, Gemini)\n")
+		fmt.Fprintf(os.Stderr, "Error: No API keys found for any supported provider\n")
 	}
 	return nil
 }
