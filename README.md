@@ -34,4 +34,4 @@ gh aipr <other args that gh pr create supports>
 ```
 
 This will follow you through interactive create process
-and your final PR title will be automatically added and emojified.
+and your final PR title and body will be automatically generated and set.
