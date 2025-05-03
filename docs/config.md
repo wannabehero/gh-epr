@@ -7,9 +7,13 @@ Check [defaults.go](../config/defaults.go) for mode details.
 The config file is stored in `$HOME/.config/gh-aipr/config.yaml`
 
 ```yaml
-# if you choose to override the prompt make sure to check the current one
-# in llm/prompt.go as yours going to replace the default one
+# Completely replaces the default system prompt
+# in llm/prompt.go with your custom prompt
 system_prompt_override: "You are a helpful assistant."
+
+# Extends the system prompt (or override) with additional instructions
+# These will be appended to the prompt with a clear section header
+additional_instructions: "Focus on security implications of the changes."
 
 # set the models to ones you want to use
 # you don't have to set all of them too

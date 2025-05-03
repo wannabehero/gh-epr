@@ -56,10 +56,17 @@ func getUserPrompt(commits []string, diff string, prTemplate string) string {
 }
 
 func getSystemPrompt() string {
-	if prompt := viper.GetString("system_prompt_override"); prompt != "" {
-		return prompt
+	basePrompt := SYSTEM_PROMPT
+
+	if override := viper.GetString("system_prompt_override"); override != "" {
+		basePrompt = override
 	}
-	return SYSTEM_PROMPT
+
+	if instructions := viper.GetString("additional_instructions"); instructions != "" {
+		return basePrompt + "\n\n## Additional User-Customized Instructions\n" + instructions
+	}
+
+	return basePrompt
 }
 
 type Response struct {
